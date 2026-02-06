@@ -15,6 +15,7 @@
 #include <fcntl.h>
 #include <memory.h>
 #include <openssl/rand.h>
+#include <openssl/sha.h>
 #include <zlib.h>
 #include <memory>
 #include <string>
@@ -2035,6 +2036,39 @@ void ConnectionsManager::setUserId(int64_t userId) {
             processRequestQueue(0, 0);
             waitingLoginRequests.clear();
         }
+    });
+}
+
+void ConnectionsManager::setAuthKey(std::vector<uint8_t> key) {
+    scheduleTask([&, key]() mutable {
+        if (currentDatacenterId == 0) {
+            currentDatacenterId = 2;
+        }
+        Datacenter *datacenter = getDatacenterWithId(currentDatacenterId);
+        if (datacenter == nullptr) {
+            datacenter = new Datacenter(instanceNum, currentDatacenterId);
+            datacenters[currentDatacenterId] = datacenter;
+        }
+
+        if (datacenter->authKeyPerm != nullptr) {
+            delete datacenter->authKeyPerm;
+        }
+
+        datacenter->authKeyPerm = new ByteArray(key.size());
+        memcpy(datacenter->authKeyPerm->bytes, key.data(), key.size());
+
+        uint8_t sha1Buffer[20];
+        SHA1(key.data(), key.size(), sha1Buffer);
+
+        uint64_t keyId = 0;
+        memcpy(&keyId, sha1Buffer + 12, 8);
+
+        datacenter->authKeyPermId = keyId;
+        datacenter->authorized = true;
+
+        saveConfig();
+
+        resumeNetwork(false);
     });
 }
 

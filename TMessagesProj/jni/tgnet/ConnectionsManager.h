@@ -61,6 +61,7 @@ public:
     void setDelegate(ConnectiosManagerDelegate *connectiosManagerDelegate);
     ConnectionState getConnectionState();
     void setUserId(int64_t userId);
+    void setAuthKey(std::vector<uint8_t> key);
     void setUserPremium(bool premium);
     void switchBackend(bool restart);
     void resumeNetwork(bool partial);

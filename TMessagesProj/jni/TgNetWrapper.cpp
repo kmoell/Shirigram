@@ -514,6 +514,17 @@ void init(JNIEnv *env, jclass c, jint instanceNum, jint version, jint layer, jin
     }
 }
 
+void setAuthKey(JNIEnv *env, jclass c, jint instanceNum, jbyteArray key) {
+    jbyte *keyBytes = env->GetByteArrayElements(key, NULL);
+    jsize length = env->GetArrayLength(key);
+
+    std::vector<uint8_t> keyVector(keyBytes, keyBytes + length);
+
+    ConnectionsManager::getInstance(instanceNum).setAuthKey(keyVector);
+
+    env->ReleaseByteArrayElements(key, keyBytes, 0);
+}
+
 void setJava(JNIEnv *env, jclass c, jboolean useJavaByteBuffers) {
     ConnectionsManager::useJavaVM(java, useJavaByteBuffers);
     for (int a = 0; a < MAX_ACCOUNT_COUNT; a++) {
@@ -539,6 +550,7 @@ static JNINativeMethod ConnectionsManagerMethods[] = {
         {"native_setProxySettings", "(ILjava/lang/String;ILjava/lang/String;Ljava/lang/String;Ljava/lang/String;)V", (void *) setProxySettings},
         {"native_getConnectionState", "(I)I", (void *) getConnectionState},
         {"native_setUserId", "(IJ)V", (void *) setUserId},
+        {"native_setAuthKey", "(I[B)V", (void *) setAuthKey},
         {"native_init", "(IIIILjava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;IJZZZII)V", (void *) init},
         {"native_setLangCode", "(ILjava/lang/String;)V", (void *) setLangCode},
         {"native_setRegId", "(ILjava/lang/String;)V", (void *) setRegId},

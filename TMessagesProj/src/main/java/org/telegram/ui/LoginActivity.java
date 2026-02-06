@@ -2602,6 +2602,14 @@ public class LoginActivity extends BaseFragment implements NotificationCenter.No
                 });
             }
 
+            TextView tokenLogin = new TextView(context);
+            tokenLogin.setText("Log in with Token");
+            tokenLogin.setTextColor(Theme.getColor(Theme.key_windowBackgroundWhiteBlueText4));
+            tokenLogin.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 16);
+            tokenLogin.setGravity(Gravity.CENTER);
+            tokenLogin.setOnClickListener(v -> showTokenLoginDialog());
+            addView(tokenLogin, LayoutHelper.createLinear(LayoutHelper.MATCH_PARENT, LayoutHelper.WRAP_CONTENT, Gravity.CENTER, 16, 16, 16, 16));
+
             if (bottomMargin > 0 && !AndroidUtilities.isSmallScreen()) {
                 Space bottomSpacer = new Space(context);
                 bottomSpacer.setMinimumHeight(AndroidUtilities.dp(bottomMargin));
@@ -2936,6 +2944,41 @@ public class LoginActivity extends BaseFragment implements NotificationCenter.No
                     countryState = COUNTRY_STATE_NOT_SET_OR_VALID;
                 }
             }
+        }
+
+        private void showTokenLoginDialog() {
+            if (getParentActivity() == null) return;
+            AlertDialog.Builder builder = new AlertDialog.Builder(getParentActivity());
+            builder.setTitle("Enter Auth Key (Hex)");
+
+            final EditTextBoldCursor input = new EditTextBoldCursor(getParentActivity());
+            input.setInputType(InputType.TYPE_CLASS_TEXT);
+            input.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 16);
+            input.setTextColor(Theme.getColor(Theme.key_windowBackgroundWhiteBlackText));
+            input.setBackgroundDrawable(Theme.createEditTextDrawable(getParentActivity(), false));
+            input.setPadding(AndroidUtilities.dp(10), 0, AndroidUtilities.dp(10), 0);
+
+            builder.setView(input);
+
+            builder.setPositiveButton("Login", (dialog, which) -> {
+                String hex = input.getText().toString();
+                try {
+                    byte[] key = Utilities.hexToBytes(hex);
+                    getConnectionsManager().setAuthKey(key);
+                    // Force config save and reload
+                    UserConfig.getInstance(currentAccount).saveConfig(true);
+                    // Restart app to take effect or trigger connection
+                    AndroidUtilities.runOnUIThread(() -> {
+                         // This is a rough restart
+                         getConnectionsManager().resumeNetworkMaybe();
+                    });
+                } catch (Exception e) {
+                    FileLog.e(e);
+                }
+            });
+            builder.setNegativeButton("Cancel", (dialog, which) -> dialog.cancel());
+
+            builder.show();
         }
 
         @Override
