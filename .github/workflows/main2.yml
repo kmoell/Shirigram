@@ -12,6 +12,14 @@ jobs:
     steps:
     - uses: actions/checkout@v4
 
+    # Очистка места (обязательно для Telegram)
+    - name: Free Disk Space
+      run: |
+        sudo rm -rf /usr/share/dotnet
+        sudo rm -rf /usr/local/lib/android
+        sudo rm -rf /opt/ghc
+        sudo docker image prune --all --force
+
     - name: Set up JDK 17
       uses: actions/setup-java@v4
       with:
@@ -22,11 +30,17 @@ jobs:
     - name: Grant execute permission for gradlew
       run: chmod +x gradlew
 
+    # ГЛАВНОЕ ИЗМЕНЕНИЕ ТУТ:
+    # 1. -Xmx2048m (Даем Gradle всего 2ГБ, чтобы C++ не умирал)
+    # 2. --no-daemon (Чтобы не висели лишние процессы)
+    # 3. --console=plain (Чтобы в логах было видно каждое движение, а не зависшая полоска)
     - name: Build with Gradle
-      run: ./gradlew assembleDebug
+      run: ./gradlew assembleDebug --no-daemon --console=plain -Dorg.gradle.jvmargs="-Xmx2048m -XX:MaxMetaspaceSize=512m" -Dorg.gradle.parallel=false -Dkotlin.daemon.jvm.options="-Xmx1024m"
 
     - name: Upload APK
       uses: actions/upload-artifact@v4
       with:
         name: app-debug
-        path: app/build/outputs/apk/debug/app-debug.apk
+        # Путь может быть или app/build/..., или TMessagesProj/build/...
+        # Звездочка найдет APK где угодно в папке build
+        path: "**/build/outputs/apk/**/debug/*.apk"
